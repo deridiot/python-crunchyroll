@@ -16,20 +16,23 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import math
-import hashlib
-import zlib
-import re
-import logging
 import base64
+import hashlib
+import logging
+import math
+import re
+import zlib
 
 from tlslite.utils.cipherfactory import createAES
+
 from crunchyroll.util import iteritems
 
-logger = logging.getLogger('crunchyroll.subtitles')
+logger = logging.getLogger("crunchyroll.subtitles")
+
 
 def aes_decrypt(key, iv, data):
     return createAES(key, iv).decrypt(data)
+
 
 class SubtitleDecrypter(object):
     """Decrypt Crunchyroll's encrypted subtitle data
@@ -40,14 +43,14 @@ class SubtitleDecrypter(object):
     @link https://code.google.com/p/urlxl-repo/source/browse/plugin.video.crunchyroll-takeout/resources/lib/crunchyDec.py
     """
 
-    ENCRYPTION_KEY_SIZE     = 32
+    ENCRYPTION_KEY_SIZE = 32
     # I have no idea where this comes from, gogo gadget copy and paste
     # results in 0x0540E9FA
-    HASH_MAGIC_CONST        = int(math.floor(math.sqrt(6.9) * math.pow(2, 25)))
+    HASH_MAGIC_CONST = int(math.floor(math.sqrt(6.9) * math.pow(2, 25)))
 
-    HASH_SECRET_MOD_CONST   = 97
+    HASH_SECRET_MOD_CONST = 97
     HASH_SECRET_CHAR_OFFSET = 33
-    HASH_SECRET_LENGTH      = 20
+    HASH_SECRET_LENGTH = 20
 
     def decrypt_subtitle(self, subtitle):
         """Decrypt encrypted subtitle data in high level model object
@@ -55,9 +58,11 @@ class SubtitleDecrypter(object):
         @param crunchyroll.models.Subtitle subtitle
         @return str
         """
-        return self.decrypt(self._build_encryption_key(int(subtitle.id)),
-            base64.b64decode(subtitle['iv'][0].text),
-            base64.b64decode(subtitle['data'][0].text))
+        return self.decrypt(
+            self._build_encryption_key(int(subtitle.id)),
+            base64.b64decode(subtitle["iv"][0].text),
+            base64.b64decode(subtitle["data"][0].text),
+        )
 
     def decrypt(self, encryption_key, iv, encrypted_data):
         """Decrypt encrypted subtitle data
@@ -68,9 +73,14 @@ class SubtitleDecrypter(object):
         @return str
         """
 
-        logger.info('Decrypting subtitles with length (%d bytes), key=%r',
-            len(encrypted_data), encryption_key)
-        return zlib.decompress(aes_decrypt(encryption_key, iv, encrypted_data)).decode('utf-8')
+        logger.info(
+            "Decrypting subtitles with length (%d bytes), key=%r",
+            len(encrypted_data),
+            encryption_key,
+        )
+        return zlib.decompress(aes_decrypt(encryption_key, iv, encrypted_data)).decode(
+            "utf-8"
+        )
 
     def _build_encryption_key(self, subtitle_id, key_size=ENCRYPTION_KEY_SIZE):
         """Generate the encryption key for a given media item
@@ -85,10 +95,12 @@ class SubtitleDecrypter(object):
         """
 
         # generate a 160-bit SHA1 hash
-        sha1_hash = hashlib.new('sha1', self._build_hash_secret((1, 2)) +
-            self._build_hash_magic(subtitle_id)).digest()
+        sha1_hash = hashlib.new(
+            "sha1",
+            self._build_hash_secret((1, 2)) + self._build_hash_magic(subtitle_id),
+        ).digest()
         # pad to 256-bit hash for 32 byte key
-        sha1_hash += b'\x00' * max(key_size - len(sha1_hash), 0)
+        sha1_hash += b"\x00" * max(key_size - len(sha1_hash), 0)
         return sha1_hash[:key_size]
 
     def _build_hash_magic(self, subtitle_id):
@@ -102,10 +114,11 @@ class SubtitleDecrypter(object):
 
         media_magic = self.HASH_MAGIC_CONST ^ subtitle_id
         hash_magic = media_magic ^ media_magic >> 3 ^ media_magic * 32
-        return str(hash_magic).encode('utf-8')
+        return str(hash_magic).encode("utf-8")
 
-    def _build_hash_secret(self, seq_seed, seq_len=HASH_SECRET_LENGTH,
-            mod_value=HASH_SECRET_MOD_CONST):
+    def _build_hash_secret(
+        self, seq_seed, seq_len=HASH_SECRET_LENGTH, mod_value=HASH_SECRET_MOD_CONST
+    ):
         """Build a seed for the hash based on the Fibonacci sequence
 
         Take first `seq_len` + len(`seq_seed`) characters of Fibonacci
@@ -123,12 +136,14 @@ class SubtitleDecrypter(object):
         fbn_seq = list(seq_seed)
         for i in range(seq_len):
             fbn_seq.append(fbn_seq[-1] + fbn_seq[-2])
-        hash_secret = list([chr(c % mod_value + self.HASH_SECRET_CHAR_OFFSET) for c in fbn_seq[2:]])
-        return ''.join(hash_secret).encode('utf-8')
+        hash_secret = list(
+            [chr(c % mod_value + self.HASH_SECRET_CHAR_OFFSET) for c in fbn_seq[2:]]
+        )
+        return "".join(hash_secret).encode("utf-8")
+
 
 class SubtitleFormatter(object):
-    """Base subtitle formatter class
-    """
+    """Base subtitle formatter class"""
 
     def format(self, subtitles):
         """Turn a string containing the subs xml document into the formatted
@@ -137,8 +152,11 @@ class SubtitleFormatter(object):
         @param str|crunchyroll.models.StyledSubtitle sub_xml_text
         @return str
         """
-        logger.debug('Formatting subtitles (id=%s) with %s',
-            subtitles.id, self.__class__.__name__)
+        logger.debug(
+            "Formatting subtitles (id=%s) with %s",
+            subtitles.id,
+            self.__class__.__name__,
+        )
         return self._format(subtitles)
 
     def _format(self, styled_subtitle):
@@ -150,33 +168,43 @@ class SubtitleFormatter(object):
         """
         raise NotImplemented
 
+
 class ASS4Formatter(SubtitleFormatter):
-    """Subtitle formatter for ASS v4 format
-    """
+    """Subtitle formatter for ASS v4 format"""
 
-    STYLE_HEADER    = '[V4 Styles]'
-    STYLE_KEYS      = 'Format: Name, Fontname, Fontsize, PrimaryColour, ' \
-        'SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, ' \
-        'StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, ' \
-        'Shadow, Alignment, MarginL, MarginR, MarginV, Encoding'
-    STYLE_FORMAT    = 'Style: {name}, {font_name}, {font_size}, {primary_colour}, ' \
-        '{secondary_colour}, {outline_colour}, {back_colour}, {bold}, {italic}, ' \
-        '{underline}, {strikeout}, {scale_x}, {scale_y}, {spacing}, {angle}, ' \
-        '{border_style}, {outline}, {shadow}, {alignment}, {margin_l}, ' \
-        '{margin_r}, {margin_v}, {encoding}'
+    STYLE_HEADER = "[V4 Styles]"
+    STYLE_KEYS = (
+        "Format: Name, Fontname, Fontsize, PrimaryColour, "
+        "SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, "
+        "StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, "
+        "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
+    )
+    STYLE_FORMAT = (
+        "Style: {name}, {font_name}, {font_size}, {primary_colour}, "
+        "{secondary_colour}, {outline_colour}, {back_colour}, {bold}, {italic}, "
+        "{underline}, {strikeout}, {scale_x}, {scale_y}, {spacing}, {angle}, "
+        "{border_style}, {outline}, {shadow}, {alignment}, {margin_l}, "
+        "{margin_r}, {margin_v}, {encoding}"
+    )
 
-    EVENT_HEADER    = '[Events]'
-    EVENT_KEYS      = 'Format: Layer, Start, End, Style, Name, MarginL, ' \
-        'MarginR, MarginV, Effect, Text'
-    EVENT_FORMAT    = 'Dialogue: 0,{start},{end},{style},{name},{margin_l},' \
-        '{margin_r},{margin_v},{effect},{text}'
+    EVENT_HEADER = "[Events]"
+    EVENT_KEYS = (
+        "Format: Layer, Start, End, Style, Name, MarginL, "
+        "MarginR, MarginV, Effect, Text"
+    )
+    EVENT_FORMAT = (
+        "Dialogue: 0,{start},{end},{style},{name},{margin_l},"
+        "{margin_r},{margin_v},{effect},{text}"
+    )
 
     def _format(self, styled_subtitle):
-        return '\n'.join([
-            self._format_header(styled_subtitle),
-            self._format_styles(styled_subtitle.findall('.//styles/style')),
-            self._format_events(styled_subtitle.findall('.//events/event')),
-        ])
+        return "\n".join(
+            [
+                self._format_header(styled_subtitle),
+                self._format_styles(styled_subtitle.findall(".//styles/style")),
+                self._format_events(styled_subtitle.findall(".//events/event")),
+            ]
+        )
 
     def _format_header(self, subtitle_element):
         header = """[Script Info]
@@ -192,43 +220,45 @@ Created: {created}
         return header.format(**subtitle_element._data.attrib)
 
     def _format_styles(self, style_elements):
-        logger.debug('Formatting %d ASS style elements', len(style_elements))
-        style = '\n'.join([
-            self.STYLE_HEADER,
-            self.STYLE_KEYS,
-            '\n'.join(self._format_style(style) \
-                for style in style_elements),
-        ])
-        return style + '\n'
+        logger.debug("Formatting %d ASS style elements", len(style_elements))
+        style = "\n".join(
+            [
+                self.STYLE_HEADER,
+                self.STYLE_KEYS,
+                "\n".join(self._format_style(style) for style in style_elements),
+            ]
+        )
+        return style + "\n"
 
     def _format_style(self, style_element):
         attrs = style_element._data.attrib.copy()
         for (k, v) in iteritems(attrs):
             # wikipedia suggests that v4 uses b10, while v4+ uses b16
-            if v.startswith('&H'):
+            if v.startswith("&H"):
                 attrs[k] = int(v[2:], 16)
         return self.STYLE_FORMAT.format(**attrs)
 
     def _format_events(self, event_elements):
-        logger.debug('Formatting %d ASS event elements', len(event_elements))
+        logger.debug("Formatting %d ASS event elements", len(event_elements))
         event_elements.sort(key=lambda e: int(e.id))
-        events = '\n'.join([
-            self.EVENT_HEADER,
-            self.EVENT_KEYS,
-            '\n'.join(self._format_event(event) \
-                for event in event_elements),
-        ])
-        return events + '\n'
+        events = "\n".join(
+            [
+                self.EVENT_HEADER,
+                self.EVENT_KEYS,
+                "\n".join(self._format_event(event) for event in event_elements),
+            ]
+        )
+        return events + "\n"
 
     def _format_event(self, event_element):
         return self.EVENT_FORMAT.format(**event_element._data.attrib)
 
-class ASS4plusFormatter(ASS4Formatter):
-    """Subtitle formatter for ASS v4+ format
-    """
 
-    STYLE_HEADER    = '[V4+ Styles]'
-    STYLE_FORMAT    = ASS4Formatter.STYLE_FORMAT.replace(', ', ',')
+class ASS4plusFormatter(ASS4Formatter):
+    """Subtitle formatter for ASS v4+ format"""
+
+    STYLE_HEADER = "[V4+ Styles]"
+    STYLE_FORMAT = ASS4Formatter.STYLE_FORMAT.replace(", ", ",")
 
     def _format_header(self, subtitle_element):
         header = """[Script Info]
@@ -246,33 +276,40 @@ Created: {created}
     def _format_style(self, style_element):
         return self.STYLE_FORMAT.format(**style_element._data.attrib)
 
-class SRTFormatter(SubtitleFormatter):
-    """Subtitle formatter for SRT (unstyled) format
-    """
 
-    ASS_CMD_PATTERN     = re.compile(r'{[^}]+}')
-    ASS_NEWLINE_PATTERN = re.compile(r'(?:\\n|\\N)')
+class SRTFormatter(SubtitleFormatter):
+    """Subtitle formatter for SRT (unstyled) format"""
+
+    ASS_CMD_PATTERN = re.compile(r"{[^}]+}")
+    ASS_NEWLINE_PATTERN = re.compile(r"(?:\\n|\\N)")
 
     def _format(self, styled_subtitle):
-        events = styled_subtitle.findall('.//events/event')
-        logger.debug('Formatting %d SRT events', len(events))
+        events = styled_subtitle.findall(".//events/event")
+        logger.debug("Formatting %d SRT events", len(events))
         events.sort(key=lambda e: e.id)
-        return '\n\n'.join(self._format_event(idx, event) \
-            for idx, event in enumerate(events, 1)) + '\n'
+        return (
+            "\n\n".join(
+                self._format_event(idx, event) for idx, event in enumerate(events, 1)
+            )
+            + "\n"
+        )
 
     def _format_event(self, index, event):
-        return '\n'.join([
-            str(index),
-            '{0} --> {1}'.format(
-                self._format_timestamp(event.start),
-                self._format_timestamp(event.end)),
-            self._format_event_text(event),
-        ])
+        return "\n".join(
+            [
+                str(index),
+                "{0} --> {1}".format(
+                    self._format_timestamp(event.start),
+                    self._format_timestamp(event.end),
+                ),
+                self._format_event_text(event),
+            ]
+        )
 
     def _format_event_text(self, event):
-        text = event._data.attrib.get('text')
-        text = self.ASS_CMD_PATTERN.sub('', text)
-        text = self.ASS_NEWLINE_PATTERN.sub('', text)
+        text = event._data.attrib.get("text")
+        text = self.ASS_CMD_PATTERN.sub("", text)
+        text = self.ASS_NEWLINE_PATTERN.sub("", text)
         return text
 
     def _format_timestamp(self, timestamp):
@@ -283,5 +320,6 @@ class SRTFormatter(SubtitleFormatter):
         @param str timestamp
         @return str
         """
-        return '{0:02d}:{1:02d}:{2:02d},{3:02d}0'.format(
-            *list(map(int, timestamp.replace('.', ':').split(':'))))
+        return "{0:02d}:{1:02d}:{2:02d},{3:02d}0".format(
+            *list(map(int, timestamp.replace(".", ":").split(":")))
+        )

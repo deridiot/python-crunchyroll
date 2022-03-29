@@ -1,4 +1,4 @@
-python-crunchyroll2
+python-crunchyroll
 ==================
 
 Python interface to Crunchyroll's undocumented APIs and utilities

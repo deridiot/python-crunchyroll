@@ -17,49 +17,47 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 import crunchyroll
 
 try:
-    with open('README.md') as readme:
+    with open("README.md") as readme:
         long_description = readme.read()
 
-    with open('requirements.txt') as reqs:
+    with open("requirements.txt") as reqs:
         requirements = [line.strip() for line in reqs if line.strip()]
 except IOError:
     long_description = crunchyroll.__description__
     requirements = [
-        'requests',
-        'tlslite-ng',
+        "requests",
+        "tlslite-ng",
     ]
 
 SETUP_ARGS = {
     # package metadata
-    'name':             crunchyroll.__title__,
-    'description':      crunchyroll.__description__,
-    'long_description': long_description,
-    'version':          crunchyroll.__version__,
-    'author':           crunchyroll.__author__,
-    'author_email':     crunchyroll.__author_email__,
-    'url':              crunchyroll.__url__,
-
+    "name": crunchyroll.__title__,
+    "description": crunchyroll.__description__,
+    "long_description": long_description,
+    "version": crunchyroll.__version__,
+    "author": crunchyroll.__author__,
+    "author_email": crunchyroll.__author_email__,
+    "url": crunchyroll.__url__,
     # pypi metadata
-    'license':          'GPLv2.0',
-    'platforms':        'any',
-    'install_requires': requirements,
-    'classifiers':      [
-        'Intended Audience :: Developers',
-        'Natural Language :: English',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3',
+    "license": "GPLv2.0",
+    "platforms": "any",
+    "install_requires": requirements,
+    "classifiers": [
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3",
     ],
-
     # setuptools info
-    'packages':         find_packages(),
-    'test_suite':       'tests',
+    "packages": find_packages(),
+    "test_suite": "tests",
 }
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup(**SETUP_ARGS)

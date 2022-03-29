@@ -16,18 +16,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import functools
 import json
 import logging
-import functools
 
 import requests
-
 from crunchyroll.apis import ApiInterface
-from crunchyroll.constants import ANDROID_MANGA
 from crunchyroll.apis.errors import *
+from crunchyroll.constants import ANDROID_MANGA
 from crunchyroll.util import iteritems
 
-logger = logging.getLogger('crunchyroll.apis.android_manga')
+logger = logging.getLogger("crunchyroll.apis.android_manga")
+
 
 def build_api_method(req_method, secure=False, method_name=None):
     def outer_func(func):
@@ -41,26 +41,27 @@ def build_api_method(req_method, secure=False, method_name=None):
             response = req_func()
             func(self, response)
             return response
+
         return inner_func
+
     return outer_func
 
-class AndroidMangaApi(ApiInterface):
-    """
-    """
 
-    METHOD_GET          = 'GET'
-    METHOD_POST         = 'POST'
+class AndroidMangaApi(ApiInterface):
+    """ """
+
+    METHOD_GET = "GET"
+    METHOD_POST = "POST"
 
     def __init__(self, state=None):
-        """
-        """
+        """ """
 
         self._connector = requests.Session()
         self._request_headers = {}
         self._state_params = {
-            'session_id':   None,
-            'auth':         None,
-            'user':         None,
+            "session_id": None,
+            "auth": None,
+            "user": None,
         }
         self._user_data = None
         self._last_response = None
@@ -68,26 +69,24 @@ class AndroidMangaApi(ApiInterface):
 
         if state is not None:
             self.set_state(state)
-        logger.info('Initialized state: %r', self._state_params)
-
+        logger.info("Initialized state: %r", self._state_params)
 
     def _get_base_params(self):
-        """
-        """
+        """ """
 
         base_params = {
             # these two are required for every request
-            'device_type':      ANDROID_MANGA.DEVICE_TYPE,
-            'api_ver':          ANDROID_MANGA.API_VER,
+            "device_type": ANDROID_MANGA.DEVICE_TYPE,
+            "api_ver": ANDROID_MANGA.API_VER,
             # these are only used for starting the session and should probably
             # not be in this list
-            'device_id':        ANDROID_MANGA.DEVICE_ID,
-            'access_token':     ANDROID_MANGA.ACCESS_TOKEN,
+            "device_id": ANDROID_MANGA.DEVICE_ID,
+            "access_token": ANDROID_MANGA.ACCESS_TOKEN,
         }
 
-        base_params.update(dict((k, v) \
-            for k, v in iteritems(self._state_params) \
-                if v is not None))
+        base_params.update(
+            dict((k, v) for k, v in iteritems(self._state_params) if v is not None)
+        )
 
         return base_params
 
@@ -98,7 +97,7 @@ class AndroidMangaApi(ApiInterface):
         be a way to tell the client to do *something* if needed.
         """
         try:
-            sess_ops = response_data.get('ops', [])
+            sess_ops = response_data.get("ops", [])
         except AttributeError:
             pass
         else:
@@ -113,19 +112,20 @@ class AndroidMangaApi(ApiInterface):
         if params is not None:
             full_params.update(params)
         try:
-            request_func = lambda u, d: \
-                getattr(self._connector, method.lower())(u, params=d,
-                    headers=self._request_headers)
+            request_func = lambda u, d: getattr(self._connector, method.lower())(
+                u, params=d, headers=self._request_headers
+            )
         except AttributeError:
-            raise ApiException('Invalid request method')
+            raise ApiException("Invalid request method")
         # TODO: need to catch a network here and raise as ApiNetworkException
 
         def do_request():
-            logger.debug('Sending %s request "%s" with params: %r',
-                method, url, full_params)
+            logger.debug(
+                'Sending %s request "%s" with params: %r', method, url, full_params
+            )
             try:
                 resp = request_func(url, full_params)
-                logger.debug('Received response code: %d', resp.status_code)
+                logger.debug("Received response code: %d", resp.status_code)
             except requests.RequestException as err:
                 raise ApiNetworkException(err)
 
@@ -136,12 +136,12 @@ class AndroidMangaApi(ApiInterface):
 
             method_returns_list = False
             try:
-                resp_json['error']
+                resp_json["error"]
             except TypeError:
-                logger.warn('Api method did not return map: %s', method)
+                logger.warn("Api method did not return map: %s", method)
                 method_returns_list = True
             except KeyError:
-                logger.warn('Api method did not return map with error key: %s', method)
+                logger.warn("Api method did not return map with error key: %s", method)
 
             if method_returns_list is None:
                 raise ApiBadResponseException(resp.content)
@@ -149,51 +149,50 @@ class AndroidMangaApi(ApiInterface):
                 data = resp_json
             else:
                 try:
-                    if resp_json['error']:
-                        raise ApiError('%s: %s' % (resp_json['code'], resp_json['message']))
+                    if resp_json["error"]:
+                        raise ApiError(
+                            "%s: %s" % (resp_json["code"], resp_json["message"])
+                        )
                 except KeyError:
                     data = resp_json
                 else:
-                    data = resp_json['data']
+                    data = resp_json["data"]
                     self._do_post_request_tasks(data)
             self._last_response = resp
             return data
+
         return do_request
 
     def _build_request_url(self, secure, api_method):
-        """Build a URL for a API method request
-        """
+        """Build a URL for a API method request"""
         if secure:
             proto = ANDROID_MANGA.PROTOCOL_SECURE
         else:
             proto = ANDROID_MANGA.PROTOCOL_INSECURE
-        req_url = ANDROID_MANGA.API_URL.format(
-            protocol=proto,
-            api_method=api_method
-        )
+        req_url = ANDROID_MANGA.API_URL.format(protocol=proto, api_method=api_method)
         return req_url
 
     @property
     def session_started(self):
-        return self._state_params.get('session_id', None) is not None
+        return self._state_params.get("session_id", None) is not None
 
     @property
     def logged_in(self):
-        return self._state_params['auth'] is not None
+        return self._state_params["auth"] is not None
 
     def get_state(self):
         state = {
-            'state_params': self._state_params,
-            'cookies': dict(self._connector.cookies),
-            'user_data': self._user_data,
+            "state_params": self._state_params,
+            "cookies": dict(self._connector.cookies),
+            "user_data": self._user_data,
         }
         return json.dumps(state)
 
     def set_state(self, state):
         loaded_state = json.loads(state)
-        self._state_params.update(loaded_state['state_params'])
-        self._connector.cookies.update(loaded_state['cookies'])
-        self._user_data = loaded_state['user_data']
+        self._state_params.update(loaded_state["state_params"])
+        self._connector.cookies.update(loaded_state["cookies"])
+        self._user_data = loaded_state["user_data"]
 
     @build_api_method(METHOD_POST)
     def android_register_gcm_token(self, response):
@@ -214,9 +213,14 @@ class AndroidMangaApi(ApiInterface):
         """
         pass
 
-    def bookmark_get(self): pass # get
-    def bookmark_set(self): pass # post
-    def bookmark_remove(self): pass # post
+    def bookmark_get(self):
+        pass  # get
+
+    def bookmark_set(self):
+        pass  # post
+
+    def bookmark_remove(self):
+        pass  # post
 
     @build_api_method(METHOD_POST)
     def cr_authenticate(self, response):
@@ -225,7 +229,7 @@ class AndroidMangaApi(ApiInterface):
 
         @param str hash_id (optional)
         """
-        self._state_params['auth'] = response['auth']
+        self._state_params["auth"] = response["auth"]
 
     @build_api_method(METHOD_POST)
     def cr_contact(self, response):
@@ -256,8 +260,8 @@ class AndroidMangaApi(ApiInterface):
         @param str password
         @param str hash_id (optional)
         """
-        self._state_params['auth'] = response['auth']
-        self._user_data = response['user']
+        self._state_params["auth"] = response["auth"]
+        self._user_data = response["user"]
         if not self.logged_in:
             raise ApiLoginFailure(response)
 
@@ -266,7 +270,7 @@ class AndroidMangaApi(ApiInterface):
         """
         @param str hash_id (optional)
         """
-        self._state_params['auth'] = None
+        self._state_params["auth"] = None
         self._user_data = None
 
     @build_api_method(METHOD_POST)
@@ -289,8 +293,8 @@ class AndroidMangaApi(ApiInterface):
         @param str device_id
         @param str access_token
         """
-        self._state_params['session_id'] = response['session_id']
-        self._state_params['country_code'] = response['country_code']
+        self._state_params["session_id"] = response["session_id"]
+        self._state_params["country_code"] = response["country_code"]
 
     @build_api_method(METHOD_POST)
     def favorite(self, response):
@@ -299,9 +303,14 @@ class AndroidMangaApi(ApiInterface):
         """
         pass
 
-    def favorite_get(self): pass # get
-    def favorite_set(self): pass # post
-    def favorite_remove(self): pass # post
+    def favorite_get(self):
+        pass  # get
+
+    def favorite_set(self):
+        pass  # post
+
+    def favorite_remove(self):
+        pass  # post
 
     @build_api_method(METHOD_GET)
     def list_chapter(self, response):

@@ -20,18 +20,18 @@ import json
 import logging
 
 import requests
-
 from crunchyroll.apis import ApiInterface
-from crunchyroll.constants import AJAX
 from crunchyroll.apis.errors import *
+from crunchyroll.constants import AJAX
 
-logger = logging.getLogger('crunchyroll.apis.ajax')
+logger = logging.getLogger("crunchyroll.apis.ajax")
+
 
 def make_ajax_api_method(req_method, secure=False):
     def outer_func(func):
         def inner_func(self, **kwargs):
-            kwargs['req'] = 'RpcApi' + func.__name__
-            kwargs['current_page'] = AJAX.API_CURRENT_PAGE
+            kwargs["req"] = "RpcApi" + func.__name__
+            kwargs["current_page"] = AJAX.API_CURRENT_PAGE
             req_url = self._build_request_url(secure)
             req_func = self._build_request(req_method, req_url, secure, params=kwargs)
             try:
@@ -39,22 +39,24 @@ def make_ajax_api_method(req_method, secure=False):
                 self._last_response = response
             except ApiLoginFailure as err:
                 raise err
-            except Exception as err: # TODO: make this more specific
-                logger.warn('Caught exception of class: %s', err.__class__.__name__)
+            except Exception as err:  # TODO: make this more specific
+                logger.warn("Caught exception of class: %s", err.__class__.__name__)
                 raise ApiNetworkException(err)
-            if not (response.ok and 'text/xml' in response.headers['Content-Type']):
+            if not (response.ok and "text/xml" in response.headers["Content-Type"]):
                 raise ApiBadResponseException(response)
             else:
                 return response.content
+
         return inner_func
+
     return outer_func
 
-class AjaxApi(ApiInterface):
-    """AJAX call API
-    """
 
-    METHOD_POST = 'POST'
-    METHOD_GET  = 'GET'
+class AjaxApi(ApiInterface):
+    """AJAX call API"""
+
+    METHOD_POST = "POST"
+    METHOD_GET = "GET"
 
     def __init__(self, state=None):
         self._connector = requests.Session()
@@ -68,12 +70,16 @@ class AjaxApi(ApiInterface):
 
     def _build_request(self, req_method, req_url, secure, params):
         def req_func():
-            logger.debug('Sending %s request to "%s" with params: %r',
-                req_method, req_url, params)
+            logger.debug(
+                'Sending %s request to "%s" with params: %r',
+                req_method,
+                req_url,
+                params,
+            )
             try:
                 func = getattr(self._connector, req_method.lower())
             except AttributeError:
-                raise ApiException('Invalid request method')
+                raise ApiException("Invalid request method")
             try:
                 if secure and req_method == self.METHOD_POST:
                     # wouldn't make sense to send data on a GET request
@@ -82,8 +88,9 @@ class AjaxApi(ApiInterface):
                     resp = func(req_url, params=params)
             except requests.RequestException as err:
                 raise ApiNetworkException(err)
-            logger.debug('Received response code: %d', resp.status_code)
+            logger.debug("Received response code: %d", resp.status_code)
             return resp
+
         return req_func
 
     @property
@@ -96,11 +103,11 @@ class AjaxApi(ApiInterface):
 
     def get_state(self):
         state_string = json.dumps(dict(self._connector.cookies))
-        logger.debug('Generated state: %s', state_string)
+        logger.debug("Generated state: %s", state_string)
         return state_string
 
     def set_state(self, state):
-        logger.debug('Loading state: %s', state)
+        logger.debug("Loading state: %s", state)
         cookie_jar = json.loads(state)
         self._connector.cookies.update(cookie_jar)
 

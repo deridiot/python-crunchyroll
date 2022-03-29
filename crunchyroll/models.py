@@ -16,21 +16,22 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import re
-import logging
-import functools
 import base64
+import functools
+import logging
+import re
 
-from crunchyroll.util import parse_xml_string, return_collection, xml_node_to_string
-from crunchyroll.subtitles import SubtitleDecrypter, SRTFormatter, ASS4plusFormatter
 from crunchyroll.constants import META
+from crunchyroll.subtitles import ASS4plusFormatter, SRTFormatter, SubtitleDecrypter
+from crunchyroll.util import parse_xml_string, return_collection, xml_node_to_string
 
-logger = logging.getLogger('crunchyroll.models')
+logger = logging.getLogger("crunchyroll.models")
+
 
 class DictModel(object):
     def __init__(self, data):
         if not isinstance(data, dict):
-            raise TypeError('DictModel can only be initialized with a dict')
+            raise TypeError("DictModel can only be initialized with a dict")
         else:
             self._data = data
 
@@ -47,7 +48,8 @@ class DictModel(object):
     __getitem__ = __getattr__
 
     def __repr__(self):
-        return '<%s(%s)>' % (self.__class__.__name__, repr(self._data))
+        return "<%s(%s)>" % (self.__class__.__name__, repr(self._data))
+
 
 class XmlModel(object):
     def __init__(self, node):
@@ -58,11 +60,10 @@ class XmlModel(object):
             except Exception as err:
                 raise ValueError(err)
         elif isinstance(node, XmlModel):
-            logger.debug('Creating new %s with node=%r', self.__class__.__name__,
-                node)
+            logger.debug("Creating new %s with node=%r", self.__class__.__name__, node)
             node = node._data
         elif node is None:
-            raise ValueError('XmlModel node cannot be NoneType')
+            raise ValueError("XmlModel node cannot be NoneType")
         self._data = node
 
     def __getattr__(self, name):
@@ -74,9 +75,9 @@ class XmlModel(object):
     def __repr__(self):
         name = self.__class__.__name__
         try:
-            return '<%s(id=%s)>' % (name, self.id)
+            return "<%s(id=%s)>" % (name, self.id)
         except (AttributeError, TypeError):
-            return '<%s(%s)>' % (name, self.tag_name)
+            return "<%s(%s)>" % (name, self.tag_name)
 
     def __str__(self):
         return self.text if self.text is not None else repr(self)
@@ -84,7 +85,7 @@ class XmlModel(object):
     __unicode__ = __str__
 
     def __getitem__(self, name):
-        return list(map(XmlModel, self.findall('./' + name)))
+        return list(map(XmlModel, self.findall("./" + name)))
 
     @property
     def text(self):
@@ -103,34 +104,40 @@ class XmlModel(object):
         except IndexError:
             return None
 
+
 class Series(DictModel):
     pass
+
 
 class Chapter(DictModel):
     pass
 
+
 class Page(DictModel):
     pass
+
 
 class Media(DictModel):
     pass
 
+
 class SubtitleStub(XmlModel):
-    LANG_UNKNOWN    = 'UNKNOWN'
+    LANG_UNKNOWN = "UNKNOWN"
 
     @property
     def language(self):
-        lang = re.search(r'^\[.*\]\s*(.*)', self.title)
+        lang = re.search(r"^\[.*\]\s*(.*)", self.title)
         if lang:
             lang_string = lang.group(1)
         else:
             lang_string = self.LANG_UNKNOWN
-        logger.debug('%r language: %r -> %r', self, self.title, lang_string)
+        logger.debug("%r language: %r -> %r", self, self.title, lang_string)
         return lang_string
 
     @property
     def is_default(self):
-        return self.default == '1'
+        return self.default == "1"
+
 
 class Subtitle(XmlModel):
     def __init__(self, node):
@@ -138,10 +145,14 @@ class Subtitle(XmlModel):
         self._decrypter = SubtitleDecrypter()
 
     def decrypt(self):
-        return StyledSubtitle(self._decrypter.decrypt(
-            self._decrypter._build_encryption_key(int(self.id)),
-            base64.b64decode(self['iv'][0].text),
-            base64.b64decode(self['data'][0].text)))
+        return StyledSubtitle(
+            self._decrypter.decrypt(
+                self._decrypter._build_encryption_key(int(self.id)),
+                base64.b64decode(self["iv"][0].text),
+                base64.b64decode(self["data"][0].text),
+            )
+        )
+
 
 class StyledSubtitle(XmlModel):
     def get_ass_formatted(self):
@@ -152,6 +163,7 @@ class StyledSubtitle(XmlModel):
         formatter = SRTFormatter()
         return formatter.format(self)
 
+
 def require_not_upsell(func):
     @functools.wraps(func)
     def inner_func(self, *pargs, **kwargs):
@@ -160,48 +172,44 @@ def require_not_upsell(func):
         else:
             return None
 
+
 class StreamInfo(XmlModel):
     @property
     def is_upsell(self):
-        return bool(self['upsell'])
+        return bool(self["upsell"])
 
     @property
     def rtmp_data(self):
         data = {
-            'url':         self.findfirst(
-                './/host').text,
-            'file':         self.findfirst(
-                './/file').text,
-            'token':        self.findfirst(
-                './/token').text,
-            'swf_url':      META.SWF_URL,
-            'page_url':     META.PAGE_URL,
+            "url": self.findfirst(".//host").text,
+            "file": self.findfirst(".//file").text,
+            "token": self.findfirst(".//token").text,
+            "swf_url": META.SWF_URL,
+            "page_url": META.PAGE_URL,
         }
         return data
 
     @property
     def duration(self):
-        return float(self.findfirst(
-            './/metadata/duration').text)
+        return float(self.findfirst(".//metadata/duration").text)
 
     @property
     def resolution(self):
-        width = self.findfirst(
-            './/metadata/width').text
-        height = self.findfirst(
-            './/metadata/height').text
+        width = self.findfirst(".//metadata/width").text
+        height = self.findfirst(".//metadata/height").text
         return (int(width), int(height))
+
 
 class MediaStream(XmlModel):
     @property
     def stream_info(self):
-        return StreamInfo(self._data.findall('.//{default}preload/stream_info')[0])
+        return StreamInfo(self._data.findall(".//{default}preload/stream_info")[0])
 
     @property
     def default_subtitles(self):
-        return Subtitle(self.findfirst('.//{default}preload/subtitle'))
+        return Subtitle(self.findfirst(".//{default}preload/subtitle"))
 
     @property
     @return_collection(SubtitleStub)
     def subtitle_stubs(self):
-        return self.findall('.//{default}preload/subtitles/subtitle')
+        return self.findall(".//{default}preload/subtitles/subtitle")

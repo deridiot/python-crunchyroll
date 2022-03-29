@@ -31,27 +31,28 @@ stderr
 :license: GNU General Public License v2+, see LICENCE for more details
 """
 
-__title__           = 'crunchyroll'
-__version__         = '1.0.1'
-__author__          = 'Alex Headley'
-__author_email__    = 'aheadley@waysaboutstuff.com'
-__license__         = 'GNU General Public License v2+'
-__copyright__       = 'Copyright 2013 Alex Headley'
-__url__             = 'https://github.com/aheadley/python-crunchyroll'
-__description__     = """
+__title__ = "crunchyroll"
+__version__ = "1.0.1"
+__author__ = "Alex Headley"
+__author_email__ = "aheadley@waysaboutstuff.com"
+__license__ = "GNU General Public License v2+"
+__copyright__ = "Copyright 2013 Alex Headley"
+__url__ = "https://github.com/aheadley/python-crunchyroll"
+__description__ = """
 A library to interface with Crunchyroll's various APIs and utilites to work
 with the returned data
 """.strip()
 
-# set default logging handler
-import os
 import logging
 
-from crunchyroll.util import NullHandler, LOG_FORMAT
+# set default logging handler
+import os
+
+from crunchyroll.util import LOG_FORMAT, NullHandler
 
 logger = logging.getLogger(__title__)
 
-if os.environ.get('CRUNCHYROLL_DEBUG', False):
+if os.environ.get("CRUNCHYROLL_DEBUG", False):
     _log_handler = logging.StreamHandler()
     _log_handler.setFormatter(LOG_FORMAT)
     _log_level = logging.DEBUG
@@ -62,4 +63,4 @@ else:
 logger.setLevel(_log_level)
 logger.addHandler(_log_handler)
 
-logger.debug('%s module init finished', __title__)
+logger.debug("%s module init finished", __title__)

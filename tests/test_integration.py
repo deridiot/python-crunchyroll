@@ -17,18 +17,21 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import unittest
 import os
+import unittest
 
-from crunchyroll.apis.meta import MetaApi
 from crunchyroll.apis.errors import *
+from crunchyroll.apis.meta import MetaApi
 
-CRUNCHYROLL_USERNAME = os.environ.get('CRUNCHYROLL_USERNAME')
-CRUNCHYROLL_PASSWORD = os.environ.get('CRUNCHYROLL_PASSWORD')
+CRUNCHYROLL_USERNAME = os.environ.get("CRUNCHYROLL_USERNAME")
+CRUNCHYROLL_PASSWORD = os.environ.get("CRUNCHYROLL_PASSWORD")
 
 CREDS_AVAILABLE = CRUNCHYROLL_USERNAME and CRUNCHYROLL_PASSWORD
 
-skip_if_no_creds = unittest.skipUnless(CREDS_AVAILABLE, 'Login credentials not available')
+skip_if_no_creds = unittest.skipUnless(
+    CREDS_AVAILABLE, "Login credentials not available"
+)
+
 
 class TestIntegration(unittest.TestCase):
     def setUp(self):
@@ -40,28 +43,31 @@ class TestIntegration(unittest.TestCase):
 
     def test_login_fail(self):
         with self.assertRaises(ApiLoginFailure):
-            self.api.login(username='example-bad-username', password='example-bad-password')
+            self.api.login(
+                username="example-bad-username", password="example-bad-password"
+            )
 
     def test_anime_search(self):
-        self._series = self.api.search_anime_series('Space Brothers')[0]
-        self.assertEqual('Space Brothers', self._series.name)
+        self._series = self.api.search_anime_series("Space Brothers")[0]
+        self.assertEqual("Space Brothers", self._series.name)
 
     def test_list_media(self):
-        self._series = self.api.search_anime_series('Space Brothers')[0]
+        self._series = self.api.search_anime_series("Space Brothers")[0]
         self._media = self.api.list_media(self._series)
         self.assertEqual(99, len([ep for ep in self._media if not ep.clip]))
-        self.assertEqual('Life Changes, Promises Don\'t', self._media[0].name)
+        self.assertEqual("Life Changes, Promises Don't", self._media[0].name)
 
     @skip_if_no_creds
     def test_subtitle_decryption(self):
         self.api.login(username=CRUNCHYROLL_USERNAME, password=CRUNCHYROLL_PASSWORD)
-        series = self.api.search_anime_series('Space Brothers')[0]
+        series = self.api.search_anime_series("Space Brothers")[0]
         media = self.api.list_media(series)
-        ep = [e for e in media if e.episode_number == '40'][0]
+        ep = [e for e in media if e.episode_number == "40"][0]
 
         stream = self.api.get_media_stream(ep, 0, 0)
         subs = stream.default_subtitles.decrypt().get_ass_formatted()
-        self.assertIn('Hibito, let me see your back', subs)
+        self.assertIn("Hibito, let me see your back", subs)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

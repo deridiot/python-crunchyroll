@@ -16,34 +16,42 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
 class ApiException(Exception):
-    """Base class for exceptions thrown by the API classes
-    """
+    """Base class for exceptions thrown by the API classes"""
+
     pass
+
 
 class ApiNetworkException(ApiException):
     """We couldn't talk to the API because the internet tubes are clogged or
     something
     """
+
     pass
+
 
 class ApiBadResponseException(ApiException):
     """We got a response from the API but it didn't make any sense or we don't
     know how to handle it
     """
+
     pass
+
 
 class ApiError(ApiException):
-    """API gave us an error response (that we know how to parse)
-    """
+    """API gave us an error response (that we know how to parse)"""
+
     pass
+
 
 class ApiLoginFailure(ApiError):
-    """Login info wasn't correct
-    """
+    """Login info wasn't correct"""
+
     pass
 
+
 class ExpiredState(ApiException):
-    """API state we tried to use is too old to be resumed from
-    """
+    """API state we tried to use is too old to be resumed from"""
+
     pass

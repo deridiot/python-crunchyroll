@@ -16,24 +16,25 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import locale
 import json
+import locale
 import logging
 
 import requests
-
 from crunchyroll.apis import ApiInterface
-from crunchyroll.constants import ANDROID
 from crunchyroll.apis.errors import *
+from crunchyroll.constants import ANDROID
 from crunchyroll.util import iteritems
 
-logger = logging.getLogger('crunchyroll.apis.android')
+logger = logging.getLogger("crunchyroll.apis.android")
+
 
 def make_android_api_method(req_method, secure=True, version=0):
     """Turn an AndroidApi's method into a function that builds the request,
     sends it, then passes the response to the actual method. Should be used
     as a decorator.
     """
+
     def outer_func(func):
         def inner_func(self, **kwargs):
             req_url = self._build_request_url(secure, func.__name__, version)
@@ -41,8 +42,11 @@ def make_android_api_method(req_method, secure=True, version=0):
             response = req_func()
             func(self, response)
             return response
+
         return inner_func
+
     return outer_func
+
 
 # TODO: should rename this to MobileApi or AppApi, I doubt the iPhone API is
 # different (is there even an iPhone app?)
@@ -57,8 +61,8 @@ class AndroidApi(ApiInterface):
     @link http://www.crunchyroll.com/forumtopic-777139/are-streams-hd-on-the-new-kindle-fire-hd?fpid=41205823
     """
 
-    METHOD_GET      = 'GET'
-    METHOD_POST     = 'POST'
+    METHOD_GET = "GET"
+    METHOD_POST = "POST"
 
     def __init__(self, state=None):
         """Init object, optionally with previously stored session and/or auth
@@ -66,24 +70,21 @@ class AndroidApi(ApiInterface):
         """
         self._connector = requests.Session()
         self._request_headers = {
-            'X-Android-Device-Manufacturer':
-                ANDROID.DEVICE_MANUFACTURER,
-            'X-Android-Device-Model':
-                ANDROID.DEVICE_MODEL,
-            'X-Android-Device-Product':
-                ANDROID.DEVICE_PRODUCT,
+            "X-Android-Device-Manufacturer": ANDROID.DEVICE_MANUFACTURER,
+            "X-Android-Device-Model": ANDROID.DEVICE_MODEL,
+            "X-Android-Device-Product": ANDROID.DEVICE_PRODUCT,
             # changing this to '1' doesn't seem to have an effect
-            'X-Android-Device-Is-GoogleTV': '1',
-            'X-Android-SDK': ANDROID.SDK_VERSION,
-            'X-Android-Release': ANDROID.RELEASE_VERSION,
-            'X-Android-Application-Version-Code': ANDROID.APP_CODE,
-            'X-Android-Application-Version-Name': ANDROID.APP_PACKAGE,
-            'User-Agent': ANDROID.USER_AGENT,
+            "X-Android-Device-Is-GoogleTV": "1",
+            "X-Android-SDK": ANDROID.SDK_VERSION,
+            "X-Android-Release": ANDROID.RELEASE_VERSION,
+            "X-Android-Application-Version-Code": ANDROID.APP_CODE,
+            "X-Android-Application-Version-Name": ANDROID.APP_PACKAGE,
+            "User-Agent": ANDROID.USER_AGENT,
         }
         self._state_params = {
-            'session_id': None,
-            'auth': None,
-            'user': None,
+            "session_id": None,
+            "auth": None,
+            "user": None,
         }
         self._user_data = None
         # for debugging
@@ -93,28 +94,27 @@ class AndroidApi(ApiInterface):
         self._session_ops = []
         if state is not None:
             self.set_state(state)
-        logger.info('Initialized state: %r', self._state_params)
+        logger.info("Initialized state: %r", self._state_params)
 
     def _get_locale(self):
         """Get the current locale with dashes (-) and underscores (_) removed
 
         Ex: en-US -> enUS
         """
-        return locale.getdefaultlocale()[0].replace('_', '').replace('-', '')
+        return locale.getdefaultlocale()[0].replace("_", "").replace("-", "")
 
     def _get_base_params(self):
-        """Get the params that will be included with every request
-        """
+        """Get the params that will be included with every request"""
         base_params = {
-            'locale':       self._get_locale(),
-            'device_id':    ANDROID.DEVICE_ID,
-            'device_type':  ANDROID.APP_PACKAGE,
-            'access_token': ANDROID.ACCESS_TOKEN,
-            'version':      ANDROID.APP_CODE,
+            "locale": self._get_locale(),
+            "device_id": ANDROID.DEVICE_ID,
+            "device_type": ANDROID.APP_PACKAGE,
+            "access_token": ANDROID.ACCESS_TOKEN,
+            "version": ANDROID.APP_CODE,
         }
-        base_params.update(dict((k, v) \
-            for k, v in iteritems(self._state_params) \
-                if v is not None))
+        base_params.update(
+            dict((k, v) for k, v in iteritems(self._state_params) if v is not None)
+        )
         return base_params
 
     def _do_post_request_tasks(self, response_data):
@@ -124,7 +124,7 @@ class AndroidApi(ApiInterface):
         be a way to tell the client to do *something* if needed.
         """
         try:
-            sess_ops = response_data.get('ops', [])
+            sess_ops = response_data.get("ops", [])
         except AttributeError:
             pass
         else:
@@ -139,19 +139,20 @@ class AndroidApi(ApiInterface):
         if params is not None:
             full_params.update(params)
         try:
-            request_func = lambda u, d: \
-                getattr(self._connector, method.lower())(u, params=d,
-                    headers=self._request_headers)
+            request_func = lambda u, d: getattr(self._connector, method.lower())(
+                u, params=d, headers=self._request_headers
+            )
         except AttributeError:
-            raise ApiException('Invalid request method')
+            raise ApiException("Invalid request method")
         # TODO: need to catch a network here and raise as ApiNetworkException
 
         def do_request():
-            logger.debug('Sending %s request "%s" with params: %r',
-                method, url, full_params)
+            logger.debug(
+                'Sending %s request "%s" with params: %r', method, url, full_params
+            )
             try:
                 resp = request_func(url, full_params)
-                logger.debug('Received response code: %d', resp.status_code)
+                logger.debug("Received response code: %d", resp.status_code)
             except requests.RequestException as err:
                 raise ApiNetworkException(err)
             try:
@@ -159,39 +160,37 @@ class AndroidApi(ApiInterface):
             except TypeError:
                 resp_json = resp.json
             try:
-                is_error = resp_json['error']
+                is_error = resp_json["error"]
             except TypeError:
                 raise ApiBadResponseException(resp.content)
             if is_error:
-                raise ApiError('%s: %s' % (resp_json['code'], resp_json['message']))
+                raise ApiError("%s: %s" % (resp_json["code"], resp_json["message"]))
             else:
                 self._last_response = resp
-                data = resp_json['data']
+                data = resp_json["data"]
                 self._do_post_request_tasks(data)
                 return data
+
         return do_request
 
     def _build_request_url(self, secure, api_method, version):
-        """Build a URL for a API method request
-        """
+        """Build a URL for a API method request"""
         if secure:
             proto = ANDROID.PROTOCOL_SECURE
         else:
             proto = ANDROID.PROTOCOL_INSECURE
         req_url = ANDROID.API_URL.format(
-            protocol=proto,
-            api_method=api_method,
-            version=version
+            protocol=proto, api_method=api_method, version=version
         )
         return req_url
 
     @property
     def session_started(self):
-        return self._state_params.get('session_id', None) is not None
+        return self._state_params.get("session_id", None) is not None
 
     @property
     def logged_in(self):
-        return self._state_params['auth'] is not None
+        return self._state_params["auth"] is not None
 
     def is_premium(self, media_type):
         """Get if the session is premium for a given media type
@@ -200,23 +199,23 @@ class AndroidApi(ApiInterface):
         @return bool
         """
         if self.logged_in:
-            if media_type in self._user_data['premium']:
+            if media_type in self._user_data["premium"]:
                 return True
         return False
 
     def get_state(self):
         state = {
-            'state_params': self._state_params,
-            'cookies': dict(self._connector.cookies),
-            'user_data': self._user_data,
+            "state_params": self._state_params,
+            "cookies": dict(self._connector.cookies),
+            "user_data": self._user_data,
         }
         return json.dumps(state)
 
     def set_state(self, state):
         loaded_state = json.loads(state)
-        self._state_params.update(loaded_state['state_params'])
-        self._connector.cookies.update(loaded_state['cookies'])
-        self._user_data = loaded_state['user_data']
+        self._state_params.update(loaded_state["state_params"])
+        self._connector.cookies.update(loaded_state["cookies"])
+        self._user_data = loaded_state["user_data"]
 
     @make_android_api_method(METHOD_POST, False)
     def start_session(self, response):
@@ -228,15 +227,15 @@ class AndroidApi(ApiInterface):
 
         @param int duration (optional)
         """
-        self._state_params['session_id'] = response['session_id']
-        self._state_params['country_code'] = response['country_code']
+        self._state_params["session_id"] = response["session_id"]
+        self._state_params["country_code"] = response["country_code"]
 
     @make_android_api_method(METHOD_POST)
     def end_session(self, response):
         """
         Should probably be called after ``logout``
         """
-        self._state_params['session_id'] = None
+        self._state_params["session_id"] = None
 
     @make_android_api_method(METHOD_POST)
     def login(self, response):
@@ -247,8 +246,8 @@ class AndroidApi(ApiInterface):
         @param str password
         @param int duration (optional)
         """
-        self._state_params['auth'] = response['auth']
-        self._user_data = response['user']
+        self._state_params["auth"] = response["auth"]
+        self._user_data = response["user"]
         if not self.logged_in:
             raise ApiLoginFailure(response)
 
@@ -258,7 +257,7 @@ class AndroidApi(ApiInterface):
         Auth param is not actually required, will be included with requests
         automatically after logging in
         """
-        self._state_params['auth'] = None
+        self._state_params["auth"] = None
         self._user_data = None
 
     @make_android_api_method(METHOD_POST)
@@ -405,8 +404,7 @@ class AndroidApi(ApiInterface):
 
     @make_android_api_method(METHOD_GET)
     def free_trial_info(self, response):
-        """
-        """
+        """ """
         pass
 
     @make_android_api_method(METHOD_GET)
@@ -432,8 +430,7 @@ class AndroidApi(ApiInterface):
 
     @make_android_api_method(METHOD_POST)
     def log_first_launch(self, response):
-        """
-        """
+        """ """
         pass
 
     @make_android_api_method(METHOD_POST)

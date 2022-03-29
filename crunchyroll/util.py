@@ -16,8 +16,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import logging
 import functools
+import logging
 import pipes
 import xml.etree.ElementTree as ET
 
@@ -34,47 +34,59 @@ except ImportError:
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
+
 from crunchyroll.constants import ANDROID_MANGA
 
-logger = logging.getLogger('crunchyroll.util')
+logger = logging.getLogger("crunchyroll.util")
 
 # use a singleton parser
 _html_parser = HTMLParser()
 
+
 def html_unescape(html_string):
     return _html_parser.unescape(html_string)
 
+
 def return_collection(collection_type):
-    """Change method return value from raw API output to collection of models
-    """
+    """Change method return value from raw API output to collection of models"""
+
     def outer_func(func):
         @functools.wraps(func)
         def inner_func(self, *pargs, **kwargs):
             result = func(self, *pargs, **kwargs)
             return list(map(collection_type, result))
+
         return inner_func
+
     return outer_func
+
 
 def parse_xml_string(xml_string):
     return ET.fromstring(xml_string)
 
+
 def xml_node_to_string(xml_node):
     return ET.tostring(xml_node)
 
+
 def format_rtmpdump_args(rtmp_data):
-    arg_string = '-r {url} -W {swf_url} -T {token} -y {file} ' \
-        '-p {page_url} -t {url}'
-    return arg_string.format(**dict([(k, pipes.quote(v)) for (k,v) in list(rtmp_data.items())]))
+    arg_string = "-r {url} -W {swf_url} -T {token} -y {file} " "-p {page_url} -t {url}"
+    return arg_string.format(
+        **dict([(k, pipes.quote(v)) for (k, v) in list(rtmp_data.items())])
+    )
+
 
 def decrypt_image_stream(image_handle, chunk_size=4 * 1024):
     xor_mask = ANDROID_MANGA.XOR_MASK
     for chunk in image_handle.iter_content(chunk_size):
         yield str(bytearray(b ^ xor_mask for b in bytearray(chunk)))
 
+
 # NullHandler was added in py2.7
-if hasattr(logging, 'NullHandler'):
+if hasattr(logging, "NullHandler"):
     NullHandler = logging.NullHandler
 else:
+
     class NullHandler(logging.Handler):
         def handle(self, record):
             pass
@@ -85,4 +97,5 @@ else:
         def createLock(self):
             self.lock = None
 
-LOG_FORMAT = logging.Formatter('[%(asctime)s] %(levelname)8s - %(name)s: %(message)s')
+
+LOG_FORMAT = logging.Formatter("[%(asctime)s] %(levelname)8s - %(name)s: %(message)s")

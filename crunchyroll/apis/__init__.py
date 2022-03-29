@@ -18,17 +18,19 @@
 
 import logging
 
-logger = logging.getLogger('crunchyroll.apis')
+logger = logging.getLogger("crunchyroll.apis")
 
 # urllib3 gives annoying warnings when used with older python versions that don't
 # matter to us, so we disable them
 # @source https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning
 try:
     import requests
+
     requests.packages.urllib3.disable_warnings()
-    logger.info('Disabled urllib3 warnings')
+    logger.info("Disabled urllib3 warnings")
 except Exception as err:
-    logger.info('Couldnt disable urllib3 warnings: %s', err)
+    logger.info("Couldnt disable urllib3 warnings: %s", err)
+
 
 class ApiInterface(object):
     """This will be the basis for the shared API interfaces once the Ajax and
@@ -37,14 +39,12 @@ class ApiInterface(object):
 
     @property
     def session_started(self):
-        """Check if the API session has started
-        """
+        """Check if the API session has started"""
         raise NotImplemented
 
     @property
     def logged_in(self):
-        """Check if a user has been logged in through the API
-        """
+        """Check if a user has been logged in through the API"""
         raise NotImplemented
 
     def get_state(self):
